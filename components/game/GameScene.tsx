@@ -40,6 +40,10 @@ export default function GameScene() {
     obstacles: [],
   });
 
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [speed, setSpeed] = useState(15);
+  const [distance, setDistance] = useState(0);
+
   const laneRef = useRef<Lane>("right");
   const phaseRef = useRef<GamePhase>("playing");
 
@@ -48,7 +52,11 @@ export default function GameScene() {
   const spawnTimerRef = useRef(0);
   const nextIdRef = useRef(0);
 
-  // Keep current lane and phase accessible to animation
+  const elapsedRef = useRef(0);
+  const speedRef = useRef(15);
+  const speedTimerRef = useRef(0);
+  const distanceRef = useRef(0);
+
   useEffect(() => {
     laneRef.current = lane;
   }, [lane]);
@@ -72,15 +80,47 @@ export default function GameScene() {
     enabled: phase === "playing",
   });
 
-  // Game animation
+  // Main game loop
   const updateFrame = useCallback((deltaTime: number) => {
     if (phaseRef.current !== "playing") return;
 
-    offsetRef.current = (offsetRef.current + 3 * deltaTime) % 10000;
+    // Timer
+    elapsedRef.current += deltaTime / 60;
 
+    if (elapsedRef.current >= elapsedTime + 1) {
+      setElapsedTime(Math.floor(elapsedRef.current));
+    }
+
+    // Random speed adjustment every 1.5 seconds
+    speedTimerRef.current += deltaTime;
+
+    if (speedTimerRef.current >= 90) {
+      speedTimerRef.current = 0;
+
+      const change = Math.floor(Math.random() * 4) + 1;
+      const direction = Math.random() > 0.5 ? 1 : -1;
+
+      speedRef.current = Math.max(
+        15,
+        Math.min(50, speedRef.current + change * direction)
+      );
+
+      setSpeed(speedRef.current);
+    }
+
+    // Distance calculation
+    distanceRef.current +=
+      (speedRef.current / 3.6) * (deltaTime / 60);
+
+    // Road animation
+    const roadSpeed = 3 * (speedRef.current / 15);
+
+    offsetRef.current =
+      (offsetRef.current + roadSpeed * deltaTime) % 10000;
+
+    // Spawn obstacles
     spawnTimerRef.current += deltaTime;
 
-    // Spawn a new obstacle periodically
     if (spawnTimerRef.current >= 90) {
       spawnTimerRef.current = 0;
 
@@ -91,11 +131,13 @@ export default function GameScene() {
       });
     }
 
-    // Move obstacles toward the player
+    // Move obstacles according to speed
+    const obstacleSpeed = 0.0025 * (speedRef.current / 15);
+
     obstaclesRef.current = obstaclesRef.current
       .map((obstacle) => ({
         ...obstacle,
-        progress: obstacle.progress + 0.004 * deltaTime,
+        progress: obstacle.progress + obstacleSpeed * deltaTime,
       }))
       .filter((obstacle) => obstacle.progress < 1.1);
 
@@ -117,53 +159,73 @@ export default function GameScene() {
       return;
     }
 
-    // Update visual frame
+    // Update visual state
     setFrame({
       offset: offsetRef.current,
       obstacles: obstaclesRef.current,
     });
-  }, []);
+  }, [elapsedTime]);
 
   useGameAnimation({
     onFrame: updateFrame,
   });
 
-  // Show results 3 seconds after collision
+  // Update distance display once per second
+  useEffect(() => {
+    if (phase !== "playing") return;
+
+    const interval = window.setInterval(() => {
+      setDistance(Math.floor(distanceRef.current));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [phase]);
+
+  // Game Over transition
   useEffect(() => {
     if (phase !== "gameOver") return;
 
     const timeout = window.setTimeout(() => {
+      phaseRef.current = "results";
       setPhase("results");
     }, 3000);
 
     return () => window.clearTimeout(timeout);
   }, [phase]);
 
-  // Restart game
+  // Restart
   const handlePlayAgain = () => {
     laneRef.current = "right";
     phaseRef.current = "playing";
 
-    offsetRef.current = 0;
     obstaclesRef.current = [];
+    offsetRef.current = 0;
     spawnTimerRef.current = 0;
     nextIdRef.current = 0;
 
+    elapsedRef.current = 0;
+    speedRef.current = 15;
+    speedTimerRef.current = 0;
+    distanceRef.current = 0;
+
     setLane("right");
+    setElapsedTime(0);
+    setSpeed(15);
+    setDistance(0);
+
     setFrame({
       offset: 0,
       obstacles: [],
     });
+
     setPhase("playing");
   };
 
-  // Convert obstacle perspective to screen coordinates
+  // Obstacle rendering
   const renderObstacle = (obstacle: Obstacle) => {
     const progress = Math.min(obstacle.progress, 1);
 
-    const roadWidth =
-      156 + progress * (984 - 156);
-
+    const roadWidth = 156 + progress * (984 - 156);
     const center = WIDTH / 2;
 
     const x =
@@ -188,23 +250,20 @@ export default function GameScene() {
     <div className="w-full">
       <GameHeader
         title="Bike Traveler"
-        score={0}
-        distance={0}
-        speed={0}
+        timeElapsed={elapsedTime}
+        distance={distance}
+        speed={speed}
       />
 
       <div className="relative h-[70vh] min-h-[400px] w-full overflow-hidden rounded-xl bg-neutral-900">
-
         <GameRoad
           width={WIDTH}
           height={HEIGHT}
           offset={frame.offset}
         />
 
-        {/* Obstacles */}
         {frame.obstacles.map(renderObstacle)}
 
-        {/* Player */}
         <GameCharacter
           width={WIDTH}
           height={HEIGHT}
@@ -215,12 +274,11 @@ export default function GameScene() {
           }}
         />
 
-        {/* Game Over */}
         <GameOverDialog
           phase={phase}
+          elapsedTime={elapsedTime}
           onPlayAgain={handlePlayAgain}
         />
-
       </div>
     </div>
   );

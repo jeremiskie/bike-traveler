@@ -1,22 +1,28 @@
 
-"use client";
-
 interface GameHeaderProps {
   title?: string;
-  score?: number;
+  timeElapsed?: number;
   distance?: number;
   speed?: number;
 }
 
+function formatTime(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(
+    remainingSeconds
+  ).padStart(2, "0")}`;
+}
+
 export default function GameHeader({
   title = "Bike Traveler",
-  score = 0,
+  timeElapsed = 0,
   distance = 0,
-  speed = 0,
+  speed = 15,
 }: GameHeaderProps) {
   return (
     <header className="mb-4 flex flex-wrap items-center justify-between gap-4 text-white">
-      {/* Game title */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">
           {title}
@@ -26,11 +32,12 @@ export default function GameHeader({
         </p>
       </div>
 
-      {/* Game statistics */}
       <div className="flex items-center gap-5">
         <div className="text-right">
-          <p className="text-xs text-neutral-400">SCORE</p>
-          <p className="font-bold tabular-nums">{score}</p>
+          <p className="text-xs text-neutral-400">TIME</p>
+          <p className="font-bold tabular-nums">
+            {formatTime(timeElapsed)}
+          </p>
         </div>
 
         <div className="text-right">

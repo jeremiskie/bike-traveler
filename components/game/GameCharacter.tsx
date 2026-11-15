@@ -1,6 +1,4 @@
 
-"use client";
-
 import type { CharacterConfig } from "@/types/game";
 
 interface GameCharacterProps {
@@ -37,40 +35,12 @@ export default function GameCharacter({
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
     >
-      {/* Shadow */}
-      <ellipse
-        cx={x}
-        cy={y + size}
-        rx={size * 0.8}
-        ry={size * 0.2}
-        fill="rgba(0,0,0,0.3)"
-      />
-
-      {/* Character body */}
       <rect
         x={x - size / 2}
         y={y - size / 2}
         width={size}
         height={size}
         fill="#e52e35"
-      />
-
-      {/* Top face */}
-      <path
-        d={`M ${x - size / 2} ${y - size / 2}
-            L ${x - size / 3} ${y - size * 0.7}
-            L ${x + size * 0.67} ${y - size * 0.7}
-            L ${x + size / 2} ${y - size / 2} Z`}
-        fill="#ff6268"
-      />
-
-      {/* Side face */}
-      <path
-        d={`M ${x + size / 2} ${y - size / 2}
-            L ${x + size * 0.67} ${y - size * 0.7}
-            L ${x + size * 0.67} ${y + size * 0.3}
-            L ${x + size / 2} ${y + size / 2} Z`}
-        fill="#a91d27"
       />
     </svg>
   );
