@@ -1,18 +1,15 @@
 
-export interface GameDimensions {
-  width: number;
-  height: number;
+export type Lane = "left" | "right";
+
+export type GamePhase = "playing" | "gameOver" | "results";
+
+export interface Obstacle {
+  id: number;
+  lane: Lane;
+  progress: number;
 }
 
-export interface RoadConfig {
-  horizonRatio: number;
-  topWidthRatio: number;
-  bottomWidthRatio: number;
-  speed: number;
-}
-
-export interface CharacterConfig {
-  lane: "left" | "right";
-  sizeRatio: number;
-  verticalPosition: number;
+export interface GameFrame {
+  offset: number;
+  obstacles: Obstacle[];
 }
