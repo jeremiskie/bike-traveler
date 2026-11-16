@@ -33,3 +33,16 @@ export interface GameFrame {
   offset: number;
   obstacles: Obstacle[];
 }
+
+export interface LeaderboardEntry {
+  id: string;
+  playerCode: string;
+  distance: number;
+  highestSpeed: number;
+  playedAt: string;
+}
+
+export interface GameResult {
+  distance: number;
+  highestSpeed: number;
+}

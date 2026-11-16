@@ -17,15 +17,15 @@ import {
 
 import { hasReachedPlayer } from "@/utils/gameUtils";
 
-import type { GameFrame, Lane, Obstacle } from "@/types/game";
+import type { GameFrame, GameResult, Lane, Obstacle } from "@/types/game";
 
 const OBSTACLE_MODELS = ["spikes", "rocks", "logs"] as const;
 
 interface UseGameLoopProps {
   isPlaying: boolean;
   lane: Lane;
-  onGameOver: () => void;
-  onChallengeComplete: () => void;
+  onGameOver: (result: GameResult) => void;
+  onChallengeComplete: (result: GameResult) => void;
 }
 
 export function useGameLoop({
@@ -41,6 +41,7 @@ export function useGameLoop({
 
   const [timeRemaining, setTimeRemaining] = useState(CHALLENGE_DURATION);
   const [speed, setSpeed] = useState(INITIAL_SPEED);
+  const [highestSpeed, setHighestSpeed] = useState(INITIAL_SPEED);
   const [distance, setDistance] = useState(0);
 
   const playingRef = useRef(isPlaying);
@@ -56,6 +57,7 @@ export function useGameLoop({
 
   const elapsedRef = useRef(0);
   const speedRef = useRef(INITIAL_SPEED);
+  const highestSpeedRef = useRef(INITIAL_SPEED);
   const speedTimerRef = useRef(0);
   const distanceRef = useRef(0);
 
@@ -105,6 +107,10 @@ export function useGameLoop({
       );
 
       setSpeed(speedRef.current);
+      if (speedRef.current > highestSpeedRef.current) {
+        highestSpeedRef.current = speedRef.current;
+        setHighestSpeed(speedRef.current);
+      }
     }
 
     // Distance
@@ -178,7 +184,10 @@ export function useGameLoop({
         obstacles: [impactObstacle],
       });
 
-      gameOverCallbackRef.current();
+      gameOverCallbackRef.current({
+        distance: Math.floor(distanceRef.current),
+        highestSpeed: highestSpeedRef.current,
+      });
       return;
     }
 
@@ -191,7 +200,10 @@ export function useGameLoop({
 
     if (elapsedRef.current >= CHALLENGE_DURATION) {
       stoppedRef.current = true;
-      challengeCompleteCallbackRef.current();
+      challengeCompleteCallbackRef.current({
+        distance: Math.floor(distanceRef.current),
+        highestSpeed: highestSpeedRef.current,
+      });
     }
   }, []);
 
@@ -206,12 +218,14 @@ export function useGameLoop({
 
     elapsedRef.current = 0;
     speedRef.current = INITIAL_SPEED;
+    highestSpeedRef.current = INITIAL_SPEED;
     speedTimerRef.current = 0;
     distanceRef.current = 0;
 
     setFrame({ offset: 0, obstacles: [] });
     setTimeRemaining(CHALLENGE_DURATION);
     setSpeed(INITIAL_SPEED);
+    setHighestSpeed(INITIAL_SPEED);
     setDistance(0);
   }, []);
 
@@ -219,6 +233,7 @@ export function useGameLoop({
     frame,
     timeRemaining,
     speed,
+    highestSpeed,
     distance,
     resetGame,
   };

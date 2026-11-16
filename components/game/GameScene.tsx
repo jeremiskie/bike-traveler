@@ -12,13 +12,14 @@ import GameSetupDialog from "./GameSetupDialog";
 
 import { useGameLoop } from "@/hooks/useGameLoop";
 import { usePlayerControls } from "@/hooks/usePlayerControls";
+import { saveLeaderboardEntry } from "@/utils/leaderboard";
 
 import {
   GAME_WIDTH,
   GAME_HEIGHT,
 } from "@/constants/game";
 
-import type { GamePhase, Lane } from "@/types/game";
+import type { GamePhase, GameResult, Lane } from "@/types/game";
 
 export default function GameScene() {
   const [lane, setLane] = useState<Lane>("right");
@@ -26,15 +27,47 @@ export default function GameScene() {
   const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [playerCode, setPlayerCode] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
-  const handleGameOver = useCallback(() => {
-    setPhase("gameOver");
-  }, []);
+  const saveResult = useCallback(
+    ({ distance, highestSpeed }: GameResult) => {
+      if (!playerCode) return;
 
-  const handleChallengeComplete = useCallback(() => {
-    setChallengeCompleted(true);
-    setPhase("results");
-  }, []);
+      try {
+        saveLeaderboardEntry({
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          playerCode,
+          distance,
+          highestSpeed,
+          playedAt: new Date().toISOString(),
+        });
+        setLeaderboardError(null);
+      } catch (error) {
+        console.error("Could not save the leaderboard result.", error);
+        setLeaderboardError(
+          "This run could not be saved to the leaderboard. Check browser storage and try again."
+        );
+      }
+    },
+    [playerCode]
+  );
+
+  const handleGameOver = useCallback(
+    (result: GameResult) => {
+      saveResult(result);
+      setPhase("gameOver");
+    },
+    [saveResult]
+  );
+
+  const handleChallengeComplete = useCallback(
+    (result: GameResult) => {
+      saveResult(result);
+      setChallengeCompleted(true);
+      setPhase("results");
+    },
+    [saveResult]
+  );
 
   const {
     frame,
@@ -96,6 +129,7 @@ export default function GameScene() {
       setLane("right");
       setChallengeCompleted(false);
       setPlayerCode(code);
+      setLeaderboardError(null);
       setCountdown(3);
       setPhase("countdown");
     },
@@ -111,6 +145,7 @@ export default function GameScene() {
     setLane("right");
     setChallengeCompleted(false);
     setPlayerCode("");
+    setLeaderboardError(null);
     setCountdown(null);
     setPhase("setup");
   }, [resetGame]);
@@ -166,6 +201,7 @@ export default function GameScene() {
           distance={distance}
           speed={speed}
           completed={challengeCompleted}
+          saveError={leaderboardError}
           onPlayAgain={handlePlayAgain}
           onNewPlayer={handleNewPlayer}
         />

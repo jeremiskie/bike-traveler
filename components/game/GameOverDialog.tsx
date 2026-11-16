@@ -9,6 +9,7 @@ interface GameOverDialogProps {
   distance: number;
   speed: number;
   completed: boolean;
+  saveError: string | null;
   onPlayAgain: () => void;
   onNewPlayer: () => void;
 }
@@ -46,6 +47,7 @@ export default function GameOverDialog({
   distance,
   speed,
   completed,
+  saveError,
   onPlayAgain,
   onNewPlayer,
 }: GameOverDialogProps) {
@@ -69,6 +71,11 @@ export default function GameOverDialog({
             Time survived: {formatTime(CHALLENGE_DURATION - timeRemaining)}
           </p>
           <GameStats distance={distance} speed={speed} />
+          {saveError && (
+            <p role="alert" className="mt-4 text-sm text-red-300">
+              {saveError}
+            </p>
+          )}
         </div>
       )}
 
@@ -83,6 +90,11 @@ export default function GameOverDialog({
               ? `You avoided every obstacle for ${CHALLENGE_DURATION} seconds.`
               : `Time survived: ${formatTime(CHALLENGE_DURATION - timeRemaining)}`}
           </p>
+          {saveError && (
+            <p role="alert" className="mb-4 text-sm text-red-300">
+              {saveError}
+            </p>
+          )}
           <GameStats distance={distance} speed={speed} />
 
           <button
