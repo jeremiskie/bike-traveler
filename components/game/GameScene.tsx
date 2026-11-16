@@ -17,9 +17,7 @@ import {
   GAME_HEIGHT,
 } from "@/constants/game";
 
-import { getObstaclePosition } from "@/utils/gameUtils";
-
-import type { GamePhase, Lane, Obstacle } from "@/types/game";
+import type { GamePhase, Lane } from "@/types/game";
 
 export default function GameScene() {
   const [lane, setLane] = useState<Lane>("right");
@@ -82,20 +80,6 @@ export default function GameScene() {
     setPhase("playing");
   }, [resetGame]);
 
-  // Render obstacles
-  const renderObstacle = (obstacle: Obstacle) => {
-    const { x, y, size } = getObstaclePosition(obstacle);
-
-    return (
-      <GameObstacle
-        key={obstacle.id}
-        x={x}
-        y={y}
-        size={size}
-      />
-    );
-  };
-
   return (
     <div className="w-full">
       <GameHeader
@@ -112,7 +96,7 @@ export default function GameScene() {
           offset={frame.offset}
         />
 
-        {frame.obstacles.map(renderObstacle)}
+        <GameObstacle obstacles={frame.obstacles} />
 
         <GameCharacter
           width={GAME_WIDTH}

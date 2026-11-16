@@ -43,7 +43,7 @@ function BikerModel() {
     </group>
   )
 }
-
+1
 useGLTF.preload('/models/character.glb')
 
 export default function GameCharacter({

@@ -15,10 +15,13 @@ export interface RoadConfig {
   bottomWidthRatio: number;
 }
 
+export type ObstacleModel = "spikes" | "rocks" | "logs";
+
 export interface Obstacle {
   id: number;
   lane: Lane;
   progress: number;
+  model: ObstacleModel;
 }
 
 export interface GameFrame {

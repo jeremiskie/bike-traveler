@@ -19,6 +19,8 @@ import { hasReachedPlayer } from "@/utils/gameUtils";
 
 import type { GameFrame, Lane, Obstacle } from "@/types/game";
 
+const OBSTACLE_MODELS = ["spikes", "rocks", "logs"] as const;
+
 interface UseGameLoopProps {
   isPlaying: boolean;
   lane: Lane;
@@ -130,6 +132,9 @@ export function useGameLoop({
         id: nextIdRef.current++,
         lane: Math.random() > 0.5 ? "left" : "right",
         progress: 0,
+        model: OBSTACLE_MODELS[
+          Math.floor(Math.random() * OBSTACLE_MODELS.length)
+        ],
       });
     }
 
