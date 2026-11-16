@@ -10,6 +10,7 @@ interface GameOverDialogProps {
   speed: number;
   completed: boolean;
   onPlayAgain: () => void;
+  onNewPlayer: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -46,6 +47,7 @@ export default function GameOverDialog({
   speed,
   completed,
   onPlayAgain,
+  onNewPlayer,
 }: GameOverDialogProps) {
   if (
     phase === "setup" ||
@@ -92,13 +94,14 @@ export default function GameOverDialog({
           </button>
 
           <div className="mt-8 flex items-center justify-between">
-            <Link
-              href="/"
+            <button
+              type="button"
+              onClick={onNewPlayer}
               className="flex flex-col items-center gap-2 text-sm text-neutral-300 hover:text-white"
             >
-              <span className="text-3xl">⌂</span>
-              HOME
-            </Link>
+              <span className="text-3xl">+</span>
+              NEW PLAYER
+            </button>
 
             <Link
               href="/leaderboards"

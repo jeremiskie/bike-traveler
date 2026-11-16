@@ -106,6 +106,15 @@ export default function GameScene() {
     handleStart(playerCode);
   }, [handleStart, playerCode]);
 
+  const handleNewPlayer = useCallback(() => {
+    resetGame();
+    setLane("right");
+    setChallengeCompleted(false);
+    setPlayerCode("");
+    setCountdown(null);
+    setPhase("setup");
+  }, [resetGame]);
+
   return (
     <div className="w-full">
       <GameHeader
@@ -158,6 +167,7 @@ export default function GameScene() {
           speed={speed}
           completed={challengeCompleted}
           onPlayAgain={handlePlayAgain}
+          onNewPlayer={handleNewPlayer}
         />
       </div>
     </div>
