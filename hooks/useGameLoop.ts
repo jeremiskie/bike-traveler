@@ -6,6 +6,7 @@ import { useGameAnimation } from "@/hooks/useGameAnimation";
 import {
   GAME_HEIGHT,
   HORIZON,
+  CHALLENGE_DURATION,
   INITIAL_SPEED,
   MAX_SPEED,
   MIN_SPEED,
@@ -22,25 +23,28 @@ interface UseGameLoopProps {
   isPlaying: boolean;
   lane: Lane;
   onGameOver: () => void;
+  onChallengeComplete: () => void;
 }
 
 export function useGameLoop({
   isPlaying,
   lane,
   onGameOver,
+  onChallengeComplete,
 }: UseGameLoopProps) {
   const [frame, setFrame] = useState<GameFrame>({
     offset: 0,
     obstacles: [],
   });
 
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState(CHALLENGE_DURATION);
   const [speed, setSpeed] = useState(INITIAL_SPEED);
   const [distance, setDistance] = useState(0);
 
   const playingRef = useRef(isPlaying);
   const laneRef = useRef(lane);
   const gameOverCallbackRef = useRef(onGameOver);
+  const challengeCompleteCallbackRef = useRef(onChallengeComplete);
 
   const stoppedRef = useRef(false);
   const obstaclesRef = useRef<Obstacle[]>([]);
@@ -65,19 +69,27 @@ export function useGameLoop({
     gameOverCallbackRef.current = onGameOver;
   }, [onGameOver]);
 
+  useEffect(() => {
+    challengeCompleteCallbackRef.current = onChallengeComplete;
+  }, [onChallengeComplete]);
+
   const updateFrame = useCallback((deltaTime: number) => {
     if (!playingRef.current || stoppedRef.current) return;
 
-    // Timer
-    elapsedRef.current += deltaTime / 60;
+    const remainingTime = CHALLENGE_DURATION - elapsedRef.current;
+    const frameDeltaTime = Math.min(deltaTime, remainingTime * 60);
+    elapsedRef.current += frameDeltaTime / 60;
 
-    const currentTime = Math.floor(elapsedRef.current);
-    setElapsedTime((previous) =>
-      previous !== currentTime ? currentTime : previous
+    const currentTimeRemaining = Math.max(
+      0,
+      Math.ceil(CHALLENGE_DURATION - elapsedRef.current)
+    );
+    setTimeRemaining((previous) =>
+      previous !== currentTimeRemaining ? currentTimeRemaining : previous
     );
 
     // Random speed adjustment
-    speedTimerRef.current += deltaTime;
+    speedTimerRef.current += frameDeltaTime;
 
     if (speedTimerRef.current >= SPEED_CHANGE_INTERVAL) {
       speedTimerRef.current %= SPEED_CHANGE_INTERVAL;
@@ -95,7 +107,7 @@ export function useGameLoop({
 
     // Distance
     distanceRef.current +=
-      (speedRef.current / 3.6) * (deltaTime / 60);
+      (speedRef.current / 3.6) * (frameDeltaTime / 60);
 
     const currentDistance = Math.floor(distanceRef.current);
     setDistance((previous) =>
@@ -106,10 +118,10 @@ export function useGameLoop({
     const roadSpeed = 3 * (speedRef.current / INITIAL_SPEED);
 
     offsetRef.current =
-      (offsetRef.current + roadSpeed * deltaTime) % 10000;
+      (offsetRef.current + roadSpeed * frameDeltaTime) % 10000;
 
     // Spawn obstacles
-    spawnTimerRef.current += deltaTime;
+    spawnTimerRef.current += frameDeltaTime;
 
     if (spawnTimerRef.current >= OBSTACLE_SPAWN_INTERVAL) {
       spawnTimerRef.current %= OBSTACLE_SPAWN_INTERVAL;
@@ -127,7 +139,7 @@ export function useGameLoop({
     const movedObstacles = obstaclesRef.current
       .map((obstacle) => ({
         ...obstacle,
-        progress: obstacle.progress + obstacleSpeed * deltaTime,
+        progress: obstacle.progress + obstacleSpeed * frameDeltaTime,
       }))
       .filter((obstacle) => obstacle.progress < 1.1);
 
@@ -171,6 +183,11 @@ export function useGameLoop({
       offset: offsetRef.current,
       obstacles: movedObstacles,
     });
+
+    if (elapsedRef.current >= CHALLENGE_DURATION) {
+      stoppedRef.current = true;
+      challengeCompleteCallbackRef.current();
+    }
   }, []);
 
   useGameAnimation({ onFrame: updateFrame });
@@ -188,14 +205,14 @@ export function useGameLoop({
     distanceRef.current = 0;
 
     setFrame({ offset: 0, obstacles: [] });
-    setElapsedTime(0);
+    setTimeRemaining(CHALLENGE_DURATION);
     setSpeed(INITIAL_SPEED);
     setDistance(0);
   }, []);
 
   return {
     frame,
-    elapsedTime,
+    timeRemaining,
     speed,
     distance,
     resetGame,

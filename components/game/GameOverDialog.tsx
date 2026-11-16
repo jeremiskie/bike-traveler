@@ -1,9 +1,14 @@
 
 import Link from "next/link";
 
+import { CHALLENGE_DURATION } from "@/constants/game";
+
 interface GameOverDialogProps {
   phase: "playing" | "gameOver" | "results";
-  elapsedTime: number;
+  timeRemaining: number;
+  distance: number;
+  speed: number;
+  completed: boolean;
   onPlayAgain: () => void;
 }
 
@@ -16,9 +21,30 @@ function formatTime(seconds: number) {
   ).padStart(2, "0")}`;
 }
 
+function GameStats({
+  distance,
+  speed,
+}: Pick<GameOverDialogProps, "distance" | "speed">) {
+  return (
+    <div className="mt-6 flex justify-center gap-8">
+      <div>
+        <p className="text-xs text-neutral-400">DISTANCE</p>
+        <p className="font-bold tabular-nums">{distance} m</p>
+      </div>
+      <div>
+        <p className="text-xs text-neutral-400">SPEED</p>
+        <p className="font-bold tabular-nums">{speed} km/h</p>
+      </div>
+    </div>
+  );
+}
+
 export default function GameOverDialog({
   phase,
-  elapsedTime,
+  timeRemaining,
+  distance,
+  speed,
+  completed,
   onPlayAgain,
 }: GameOverDialogProps) {
   if (phase === "playing") return null;
@@ -32,20 +58,24 @@ export default function GameOverDialog({
           </h2>
 
           <p className="mt-4 text-neutral-300">
-            Time survived: {formatTime(elapsedTime)}
+            Time survived: {formatTime(CHALLENGE_DURATION - timeRemaining)}
           </p>
+          <GameStats distance={distance} speed={speed} />
         </div>
       )}
 
       {phase === "results" && (
         <div className="w-full max-w-md px-6 text-center text-white">
           <h2 className="mb-3 text-3xl font-black">
-            TRY AGAIN?
+            {completed ? "CHALLENGE COMPLETE" : "TRY AGAIN?"}
           </h2>
 
           <p className="mb-8 text-sm text-neutral-300">
-            Your time: {formatTime(elapsedTime)}
+            {completed
+              ? `You avoided every obstacle for ${CHALLENGE_DURATION} seconds.`
+              : `Time survived: ${formatTime(CHALLENGE_DURATION - timeRemaining)}`}
           </p>
+          <GameStats distance={distance} speed={speed} />
 
           <button
             onClick={onPlayAgain}

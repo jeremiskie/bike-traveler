@@ -1,7 +1,8 @@
+import { CHALLENGE_DURATION } from "@/constants/game";
 
 interface GameHeaderProps {
   title?: string;
-  timeElapsed?: number;
+  timeRemaining?: number;
   distance?: number;
   speed?: number;
 }
@@ -17,7 +18,7 @@ function formatTime(seconds: number) {
 
 export default function GameHeader({
   title = "Bike Traveler",
-  timeElapsed = 0,
+  timeRemaining = CHALLENGE_DURATION,
   distance = 0,
   speed = 15,
 }: GameHeaderProps) {
@@ -34,9 +35,9 @@ export default function GameHeader({
 
       <div className="flex items-center gap-5">
         <div className="text-right">
-          <p className="text-xs text-neutral-400">TIME</p>
+          <p className="text-xs text-neutral-400">TIME LEFT</p>
           <p className="font-bold tabular-nums">
-            {formatTime(timeElapsed)}
+            {formatTime(timeRemaining)}
           </p>
         </div>
 

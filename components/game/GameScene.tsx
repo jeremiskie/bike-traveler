@@ -24,14 +24,20 @@ import type { GamePhase, Lane, Obstacle } from "@/types/game";
 export default function GameScene() {
   const [lane, setLane] = useState<Lane>("right");
   const [phase, setPhase] = useState<GamePhase>("playing");
+  const [challengeCompleted, setChallengeCompleted] = useState(false);
 
   const handleGameOver = useCallback(() => {
     setPhase("gameOver");
   }, []);
 
+  const handleChallengeComplete = useCallback(() => {
+    setChallengeCompleted(true);
+    setPhase("results");
+  }, []);
+
   const {
     frame,
-    elapsedTime,
+    timeRemaining,
     speed,
     distance,
     resetGame,
@@ -39,6 +45,7 @@ export default function GameScene() {
     isPlaying: phase === "playing",
     lane,
     onGameOver: handleGameOver,
+    onChallengeComplete: handleChallengeComplete,
   });
 
   // Player controls
@@ -71,6 +78,7 @@ export default function GameScene() {
   const handlePlayAgain = useCallback(() => {
     resetGame();
     setLane("right");
+    setChallengeCompleted(false);
     setPhase("playing");
   }, [resetGame]);
 
@@ -92,7 +100,7 @@ export default function GameScene() {
     <div className="w-full">
       <GameHeader
         title="Bike Traveler"
-        timeElapsed={elapsedTime}
+        timeRemaining={timeRemaining}
         distance={distance}
         speed={speed}
       />
@@ -118,7 +126,10 @@ export default function GameScene() {
 
         <GameOverDialog
           phase={phase}
-          elapsedTime={elapsedTime}
+          timeRemaining={timeRemaining}
+          distance={distance}
+          speed={speed}
+          completed={challengeCompleted}
           onPlayAgain={handlePlayAgain}
         />
       </div>
