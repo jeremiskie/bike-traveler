@@ -4,7 +4,7 @@ import Link from "next/link";
 import { CHALLENGE_DURATION } from "@/constants/game";
 
 interface GameOverDialogProps {
-  phase: "playing" | "gameOver" | "results";
+  phase: "setup" | "countdown" | "playing" | "gameOver" | "results";
   timeRemaining: number;
   distance: number;
   speed: number;
@@ -47,7 +47,13 @@ export default function GameOverDialog({
   completed,
   onPlayAgain,
 }: GameOverDialogProps) {
-  if (phase === "playing") return null;
+  if (
+    phase === "setup" ||
+    phase === "countdown" ||
+    phase === "playing"
+  ) {
+    return null;
+  }
 
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 backdrop-blur-sm">

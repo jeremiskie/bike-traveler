@@ -2,6 +2,7 @@ import { CHALLENGE_DURATION } from "@/constants/game";
 
 interface GameHeaderProps {
   title?: string;
+  playerCode?: string;
   timeRemaining?: number;
   distance?: number;
   speed?: number;
@@ -18,6 +19,7 @@ function formatTime(seconds: number) {
 
 export default function GameHeader({
   title = "Bike Traveler",
+  playerCode,
   timeRemaining = CHALLENGE_DURATION,
   distance = 0,
   speed = 15,
@@ -31,6 +33,14 @@ export default function GameHeader({
         <p className="text-xs text-neutral-400">
           Endless Road Adventure
         </p>
+        {playerCode && (
+          <p className="mt-1 text-xs text-neutral-300">
+            Player code
+            <span className="ml-2 font-bold tracking-widest text-white">
+              {playerCode}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-5">

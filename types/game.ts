@@ -1,7 +1,12 @@
 
 export type Lane = "left" | "right";
 
-export type GamePhase = "playing" | "gameOver" | "results";
+export type GamePhase =
+  | "setup"
+  | "countdown"
+  | "playing"
+  | "gameOver"
+  | "results";
 
 export interface CharacterConfig {
   lane: Lane;
