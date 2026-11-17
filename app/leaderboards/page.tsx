@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { readLeaderboardEntries } from "@/utils/leaderboard";
@@ -18,8 +18,17 @@ function formatTime(value: string) {
 }
 
 export default function LeaderboardsPage() {
+  const router = useRouter();
   const [entries, setEntries] = useState<LeaderboardEntry[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const handleBackToGame = () => {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -55,12 +64,13 @@ export default function LeaderboardsPage() {
               this browser.
             </p>
           </div>
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={handleBackToGame}
             className="rounded-lg border border-neutral-700 px-4 py-2 text-sm font-medium text-neutral-200 transition hover:border-neutral-500 hover:text-white"
           >
             Back to game
-          </Link>
+          </button>
         </header>
 
         {loadError && (

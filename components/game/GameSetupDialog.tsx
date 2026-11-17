@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
+import Link from "next/link";
 
 interface GameSetupDialogProps {
   onStart: (playerCode: string) => void;
@@ -102,6 +103,14 @@ export default function GameSetupDialog({
         >
           PLAY
         </button>
+
+        <Link
+          href="/leaderboards"
+          className="mt-5 inline-flex items-center gap-2 text-sm text-neutral-300 transition hover:text-white"
+        >
+          <span aria-hidden="true">🏆</span>
+          LEADERBOARDS
+        </Link>
       </form>
     </div>
   );

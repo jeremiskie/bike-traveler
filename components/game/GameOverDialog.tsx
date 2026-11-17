@@ -12,6 +12,7 @@ interface GameOverDialogProps {
   saveError: string | null;
   onPlayAgain: () => void;
   onNewPlayer: () => void;
+  onOpenLeaderboards: () => void;
 }
 
 function formatTime(seconds: number) {
@@ -50,6 +51,7 @@ export default function GameOverDialog({
   saveError,
   onPlayAgain,
   onNewPlayer,
+  onOpenLeaderboards,
 }: GameOverDialogProps) {
   if (
     phase === "setup" ||
@@ -117,6 +119,7 @@ export default function GameOverDialog({
 
             <Link
               href="/leaderboards"
+              onClick={onOpenLeaderboards}
               className="flex flex-col items-center gap-2 text-sm text-neutral-300 hover:text-white"
             >
               <span className="text-3xl">🏆</span>

@@ -28,6 +28,12 @@ interface UseGameLoopProps {
   onChallengeComplete: (result: GameResult) => void;
 }
 
+interface RestoredResult {
+  timeRemaining: number;
+  speed: number;
+  distance: number;
+}
+
 export function useGameLoop({
   isPlaying,
   lane,
@@ -229,6 +235,27 @@ export function useGameLoop({
     setDistance(0);
   }, []);
 
+  const restoreResult = useCallback(
+    ({ timeRemaining, speed, distance }: RestoredResult) => {
+      stoppedRef.current = true;
+      elapsedRef.current = CHALLENGE_DURATION - timeRemaining;
+      speedRef.current = speed;
+      highestSpeedRef.current = speed;
+      distanceRef.current = distance;
+
+      obstaclesRef.current = [];
+      offsetRef.current = 0;
+      spawnTimerRef.current = 0;
+      speedTimerRef.current = 0;
+      setFrame({ offset: 0, obstacles: [] });
+      setTimeRemaining(timeRemaining);
+      setSpeed(speed);
+      setHighestSpeed(speed);
+      setDistance(distance);
+    },
+    []
+  );
+
   return {
     frame,
     timeRemaining,
@@ -236,5 +263,6 @@ export function useGameLoop({
     highestSpeed,
     distance,
     resetGame,
+    restoreResult,
   };
 }

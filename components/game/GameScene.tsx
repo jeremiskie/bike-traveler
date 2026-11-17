@@ -15,11 +15,49 @@ import { usePlayerControls } from "@/hooks/usePlayerControls";
 import { saveLeaderboardEntry } from "@/utils/leaderboard";
 
 import {
+  CHALLENGE_DURATION,
   GAME_WIDTH,
   GAME_HEIGHT,
 } from "@/constants/game";
 
 import type { GamePhase, GameResult, Lane } from "@/types/game";
+
+const GAME_RESULT_STORAGE_KEY = "bike-traveler-resume-result-v1";
+
+interface SavedGameResult {
+  playerCode: string;
+  timeRemaining: number;
+  speed: number;
+  distance: number;
+  completed: boolean;
+}
+
+function isSavedGameResult(value: unknown): value is SavedGameResult {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  return (
+    "playerCode" in value &&
+    typeof value.playerCode === "string" &&
+    /^[A-Z]{3}$/.test(value.playerCode) &&
+    "timeRemaining" in value &&
+    typeof value.timeRemaining === "number" &&
+    Number.isFinite(value.timeRemaining) &&
+    value.timeRemaining >= 0 &&
+    value.timeRemaining <= CHALLENGE_DURATION &&
+    "speed" in value &&
+    typeof value.speed === "number" &&
+    Number.isFinite(value.speed) &&
+    value.speed >= 0 &&
+    "distance" in value &&
+    typeof value.distance === "number" &&
+    Number.isFinite(value.distance) &&
+    value.distance >= 0 &&
+    "completed" in value &&
+    typeof value.completed === "boolean"
+  );
+}
 
 export default function GameScene() {
   const [lane, setLane] = useState<Lane>("right");
@@ -75,12 +113,41 @@ export default function GameScene() {
     speed,
     distance,
     resetGame,
+    restoreResult,
   } = useGameLoop({
     isPlaying: phase === "playing",
     lane,
     onGameOver: handleGameOver,
     onChallengeComplete: handleChallengeComplete,
   });
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      try {
+        const savedResult = window.sessionStorage.getItem(
+          GAME_RESULT_STORAGE_KEY
+        );
+        if (savedResult === null) return;
+
+        window.sessionStorage.removeItem(GAME_RESULT_STORAGE_KEY);
+        const parsedResult: unknown = JSON.parse(savedResult);
+        if (!isSavedGameResult(parsedResult)) {
+          throw new Error("Saved game result is invalid.");
+        }
+
+        restoreResult(parsedResult);
+        setPlayerCode(parsedResult.playerCode);
+        setChallengeCompleted(parsedResult.completed);
+        setPhase("results");
+        setLeaderboardError(null);
+      } catch (error) {
+        console.error("Could not restore the previous game result.", error);
+        setLeaderboardError("The previous game result could not be restored.");
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [restoreResult]);
 
   // Player controls
   const moveLeft = useCallback(() => {
@@ -150,6 +217,27 @@ export default function GameScene() {
     setPhase("setup");
   }, [resetGame]);
 
+  const handleOpenLeaderboards = useCallback(() => {
+    try {
+      const savedResult: SavedGameResult = {
+        playerCode,
+        timeRemaining,
+        speed,
+        distance,
+        completed: challengeCompleted,
+      };
+      window.sessionStorage.setItem(
+        GAME_RESULT_STORAGE_KEY,
+        JSON.stringify(savedResult)
+      );
+    } catch (error) {
+      console.error("Could not save the game result for restoration.", error);
+      setLeaderboardError(
+        "The game result may not be restored when you return from leaderboards."
+      );
+    }
+  }, [challengeCompleted, distance, playerCode, speed, timeRemaining]);
+
   return (
     <div className="w-full">
       <GameHeader
@@ -204,6 +292,7 @@ export default function GameScene() {
           saveError={leaderboardError}
           onPlayAgain={handlePlayAgain}
           onNewPlayer={handleNewPlayer}
+          onOpenLeaderboards={handleOpenLeaderboards}
         />
       </div>
     </div>
