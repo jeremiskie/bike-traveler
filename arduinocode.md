@@ -1,3 +1,14 @@
+#include <WiFi.h>
+#include <WebServer.h>
+
+// WiFi credentials (your phone hotspot)
+const char* ssid = "Infinix HOT 60 Pro";
+const char* password = "qwerty123";
+
+// Button pins (wired to GND using INPUT_PULLUP)
+const int LEFT_BUTTON = 18;
+const int RIGHT_BUTTON = 19;
+
 // Hall sensor digital output pin
 const int HALL_PIN = 27;
 
@@ -14,6 +25,13 @@ const unsigned long SPEED_UPDATE_INTERVAL_MS = 250;
 
 // Sanity filter to ignore wild double-trigger spikes on a bike
 const float MAX_PLAUSIBLE_SPEED_KMH = 85.0;
+
+// Web server on port 80
+WebServer server(80);
+
+// Keep track of last button states for edge detection
+bool lastLeftState = HIGH;
+bool lastRightState = HIGH;
 
 // Shared variables modified inside the interrupt
 volatile unsigned long lastPulseMicros = 0;
@@ -35,22 +53,100 @@ void IRAM_ATTR handleHallInterrupt() {
   }
 }
 
+// Add CORS headers to browser responses
+void addCORSHeaders() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
+  server.sendHeader("Cache-Control", "no-store");
+}
+
+// Handle CORS preflight for /buttons
+void handleOptions() {
+  addCORSHeaders();
+  server.send(204);
+}
+
+// Handle GET /buttons request from Next.js
+void handleButtons() {
+  addCORSHeaders();
+
+  bool leftPressed = (digitalRead(LEFT_BUTTON) == LOW);
+  bool rightPressed = (digitalRead(RIGHT_BUTTON) == LOW);
+
+  noInterrupts();
+  unsigned long pulsesSnapshot = totalPulses;
+  interrupts();
+
+  String json = "{";
+  json += "\"left\":" + String(leftPressed ? "true" : "false") + ",";
+  json += "\"right\":" + String(rightPressed ? "true" : "false") + ",";
+  json += "\"speed_kmh\":" + String(currentSpeedKmh, 2) + ",";
+  json += "\"pulses\":" + String(pulsesSnapshot);
+  json += "}";
+
+  server.send(200, "application/json", json);
+}
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  pinMode(LEFT_BUTTON, INPUT_PULLUP);
+  pinMode(RIGHT_BUTTON, INPUT_PULLUP);
   pinMode(HALL_PIN, INPUT_PULLUP);
+
   attachInterrupt(digitalPinToInterrupt(HALL_PIN), handleHallInterrupt, FALLING);
 
+  // Connect to phone hotspot
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  // Disable Wi-Fi power saving mode for instant response
+  WiFi.setSleep(false);
+
+  Serial.println("\nConnected!");
+  Serial.print("ESP32 IP Address: http://");
+  Serial.println(WiFi.localIP());
+
+  server.on("/buttons", HTTP_OPTIONS, handleOptions);
+  server.on("/buttons", HTTP_GET, handleButtons);
+
+  server.begin();
+  Serial.println("HTTP server started. Ready for button presses and bike speed!");
+
   lastUpdateMs = millis();
-  Serial.println("ESP32 Bike Speedometer Ready (Serial Monitor in km/h)");
 }
 
 void loop() {
-  unsigned long nowMs = millis();
+  // Keep the web server running to accept requests
+  server.handleClient();
 
+  // Read current button states
+  bool leftState = digitalRead(LEFT_BUTTON);
+  bool rightState = digitalRead(RIGHT_BUTTON);
+
+  // Detect falling edge (HIGH -> LOW) for left button
+  if (lastLeftState == HIGH && leftState == LOW) {
+    Serial.println("Left button pressed!");
+  }
+
+  // Detect falling edge (HIGH -> LOW) for right button
+  if (lastRightState == HIGH && rightState == LOW) {
+    Serial.println("Right button pressed!");
+  }
+
+  lastLeftState = leftState;
+  lastRightState = rightState;
+
+  // Calculate and print bike speed in km/h at fixed intervals
+  unsigned long nowMs = millis();
   if (nowMs - lastUpdateMs >= SPEED_UPDATE_INTERVAL_MS) {
-    // Safely read pulse count from ISR
     noInterrupts();
     unsigned long pulsesNow = totalPulses;
     interrupts();
@@ -83,4 +179,6 @@ void loop() {
     Serial.print(" km/h | Total Pulses: ");
     Serial.println(pulsesNow);
   }
+
+  delay(5);
 }
