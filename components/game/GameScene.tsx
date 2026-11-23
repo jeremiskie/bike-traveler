@@ -192,7 +192,7 @@ export default function GameScene() {
     }, 5000);
 
     return () => window.clearTimeout(timeout);
-  }, [phase, connected, sensorSpeedKmh, speed]);
+  }, [phase, connected, sensorSpeedKmh, speed, playerCode]);
 
   useEffect(() => {
     if (phase !== "countdown" || countdown === null) return;
@@ -228,20 +228,25 @@ export default function GameScene() {
 
     autoStartRequested.current = true;
     const replayPlayerCode = url.searchParams.get("playerCode")?.toUpperCase();
-    url.searchParams.delete("playAgain");
-    url.searchParams.delete("playerCode");
-    window.history.replaceState(
-      null,
-      "",
-      `${url.pathname}${url.search}${url.hash}`
-    );
 
-    if (!replayPlayerCode || !/^[A-Z]{3}$/.test(replayPlayerCode)) {
-      console.error("Could not restart the game: the player code is invalid.");
-      return;
-    }
+    const timeout = window.setTimeout(() => {
+      url.searchParams.delete("playAgain");
+      url.searchParams.delete("playerCode");
+      window.history.replaceState(
+        null,
+        "",
+        `${url.pathname}${url.search}${url.hash}`
+      );
 
-    handleStart(replayPlayerCode);
+      if (!replayPlayerCode || !/^[A-Z]{3}$/.test(replayPlayerCode)) {
+        console.error("Could not restart the game: the player code is invalid.");
+        return;
+      }
+
+      handleStart(replayPlayerCode);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [handleStart]);
 
   const handlePlayAgain = useCallback(() => {
