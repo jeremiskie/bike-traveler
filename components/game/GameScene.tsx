@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import GameRoad from "./GameRoad";
 import GameCharacter from "./GameCharacter";
@@ -66,6 +66,7 @@ export default function GameScene() {
   const [playerCode, setPlayerCode] = useState("");
   const [countdown, setCountdown] = useState<number | null>(null);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const autoStartRequested = useRef(false);
 
   const saveResult = useCallback(
     ({ distance, highestSpeed }: GameResult) => {
@@ -142,6 +143,11 @@ export default function GameScene() {
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       try {
+        if (autoStartRequested.current) {
+          window.sessionStorage.removeItem(GAME_RESULT_STORAGE_KEY);
+          return;
+        }
+
         const savedResult = window.sessionStorage.getItem(
           GAME_RESULT_STORAGE_KEY
         );
@@ -172,11 +178,21 @@ export default function GameScene() {
     if (phase !== "gameOver") return;
 
     const timeout = window.setTimeout(() => {
-      setPhase("results");
-    }, 3000);
+      const humanSpeed =
+        connected && Number.isFinite(sensorSpeedKmh)
+          ? sensorSpeedKmh
+          : speed;
+      const comparisonSpeed = Math.max(0, humanSpeed);
+
+      window.location.assign(
+        `http://localhost:3001/speed-comparison?speed=${encodeURIComponent(
+          comparisonSpeed.toFixed(2)
+        )}&playerCode=${encodeURIComponent(playerCode)}`
+      );
+    }, 5000);
 
     return () => window.clearTimeout(timeout);
-  }, [phase]);
+  }, [phase, connected, sensorSpeedKmh, speed]);
 
   useEffect(() => {
     if (phase !== "countdown" || countdown === null) return;
@@ -205,6 +221,28 @@ export default function GameScene() {
     },
     [resetGame]
   );
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("playAgain") !== "1") return;
+
+    autoStartRequested.current = true;
+    const replayPlayerCode = url.searchParams.get("playerCode")?.toUpperCase();
+    url.searchParams.delete("playAgain");
+    url.searchParams.delete("playerCode");
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+
+    if (!replayPlayerCode || !/^[A-Z]{3}$/.test(replayPlayerCode)) {
+      console.error("Could not restart the game: the player code is invalid.");
+      return;
+    }
+
+    handleStart(replayPlayerCode);
+  }, [handleStart]);
 
   const handlePlayAgain = useCallback(() => {
     handleStart(playerCode);
