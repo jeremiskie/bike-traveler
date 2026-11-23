@@ -9,15 +9,7 @@ import type { Lane, Obstacle } from "@/types/game";
 
 export function getObstaclePosition(obstacle: Obstacle) {
   const progress = Math.min(obstacle.progress, 1);
-
-  const roadWidth = 156 + progress * (984 - 156);
-  const center = GAME_WIDTH / 2;
-
-  const x =
-    obstacle.lane === "right"
-      ? center + roadWidth * 0.25
-      : center - roadWidth * 0.25;
-
+  const x = getLaneX(obstacle.lane, progress);
   const y = HORIZON + progress * (GAME_HEIGHT - HORIZON);
   const size = 12 + progress * 52;
 

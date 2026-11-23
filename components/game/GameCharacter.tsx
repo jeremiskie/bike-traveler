@@ -5,7 +5,9 @@ import React, { useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { PLAYER_PROGRESS } from "@/constants/game";
 import type { CharacterConfig } from "@/types/game";
+import { getLaneX } from "@/utils/gameUtils";
 
 interface GameCharacterProps {
   width: number;
@@ -56,14 +58,8 @@ function GameCharacter({
     width * (config?.sizeRatio ?? 0.065)
   );
 
-  const center = width / 2;
-  const roadWidth = width * 0.82;
   const lane = config?.lane ?? "right";
-
-  const x =
-    lane === "right"
-      ? center + roadWidth * 0.25
-      : center - roadWidth * 0.25;
+  const x = getLaneX(lane, PLAYER_PROGRESS);
 
   const y = height * (config?.verticalPosition ?? 0.72);
 

@@ -10,6 +10,7 @@ import {
   INITIAL_SPEED,
   MAX_SPEED,
   MIN_SPEED,
+  OBSTACLE_MIN_SPAWN_GAP,
   OBSTACLE_SPAWN_INTERVAL,
   PLAYER_PROGRESS,
   SPEED_CHANGE_INTERVAL,
@@ -166,8 +167,15 @@ export function useGameLoop({
     // Spawn obstacles
     spawnTimerRef.current += frameDeltaTime;
 
-    if (spawnTimerRef.current >= OBSTACLE_SPAWN_INTERVAL) {
-      spawnTimerRef.current %= OBSTACLE_SPAWN_INTERVAL;
+    const canSpawnObstacle = obstaclesRef.current.every(
+      (obstacle) => obstacle.progress >= OBSTACLE_MIN_SPAWN_GAP
+    );
+
+    if (
+      spawnTimerRef.current >= OBSTACLE_SPAWN_INTERVAL &&
+      canSpawnObstacle
+    ) {
+      spawnTimerRef.current = 0;
 
       obstaclesRef.current.push({
         id: nextIdRef.current++,
@@ -180,7 +188,7 @@ export function useGameLoop({
     }
 
     // Move obstacles continuously
-    const obstacleSpeed = 0.0025 * (speedRef.current / INITIAL_SPEED);
+    const obstacleSpeed = 0.0018 * (speedRef.current / INITIAL_SPEED);
 
     const movedObstacles = obstaclesRef.current
       .map((obstacle) => ({

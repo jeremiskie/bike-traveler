@@ -10,7 +10,8 @@ export const MAX_SPEED = 50;
 export const INITIAL_SPEED = 15;
 export const CHALLENGE_DURATION = 30;
 
-export const OBSTACLE_SPAWN_INTERVAL = 90;
+export const OBSTACLE_SPAWN_INTERVAL = 150;
+export const OBSTACLE_MIN_SPAWN_GAP = 0.32;
 export const SPEED_CHANGE_INTERVAL = 90;
 
 export const PLAYER_PROGRESS =

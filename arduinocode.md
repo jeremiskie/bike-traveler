@@ -16,15 +16,24 @@ const int HALL_PIN = 27;
 const float WHEEL_CIRCUMFERENCE_M = 2.10; // Measure your wheel's rolled distance (in meters)
 const int PULSES_PER_REV = 1;            // Set to >1 if multiple triggers happen per 1 full turn
 
+// <--- ADJUST SPEED FEEL HERE ---
 // Anti-double-count debounce window (microseconds)
-// 50,000 us = 50 ms helps stop a single magnet pass from counting twice
-const unsigned long MIN_PULSE_INTERVAL_US = 50000;
+// 80,000 us = 80 ms helps stop a single slow magnet approach from double-counting
+const unsigned long MIN_PULSE_INTERVAL_US = 80000;
 
-// How often speed is calculated and printed to Serial Monitor (milliseconds)
-const unsigned long SPEED_UPDATE_INTERVAL_MS = 250;
+// How often speed is calculated & printed (milliseconds)
+// 1000 ms (1 sec) makes 1 pulse = ~7.56 km/h instead of ~30 km/h every 250 ms
+const unsigned long SPEED_UPDATE_INTERVAL_MS = 1000;
 
-// Sanity filter to ignore wild double-trigger spikes on a bike
-const float MAX_PLAUSIBLE_SPEED_KMH = 85.0;
+// Smoothing factor (0.10 to 0.30 = calm/smooth, 0.50+ = fast/jumpy)
+const float SPEED_SMOOTHING = 0.20;
+
+// Cap speed to your realistic top speed in km/h (e.g., 45.0 for normal cycling)
+const float MAX_PLAUSIBLE_SPEED_KMH = 45.0;
+
+// Stop counting as moving if no pulse happens for this long (milliseconds)
+const unsigned long IDLE_TIMEOUT_MS = 1500;
+// ---------------------------------
 
 // Web server on port 80
 WebServer server(80);
@@ -149,25 +158,25 @@ void loop() {
   if (nowMs - lastUpdateMs >= SPEED_UPDATE_INTERVAL_MS) {
     noInterrupts();
     unsigned long pulsesNow = totalPulses;
+    unsigned long lastPulseUs = lastPulseMicros;
     interrupts();
 
     unsigned long deltaPulses = pulsesNow - lastSampledPulses;
     float elapsedSec = (nowMs - lastUpdateMs) / 1000.0;
+    unsigned long msSinceLastPulse = (lastPulseUs == 0) ? 999999UL : ((micros() - lastPulseUs) / 1000UL);
 
     float measuredSpeedKmh = 0.0;
-    if (deltaPulses > 0 && elapsedSec > 0.0) {
+    if (deltaPulses > 0 && elapsedSec > 0.0 && msSinceLastPulse <= IDLE_TIMEOUT_MS) {
       float distanceMeters = (deltaPulses / (float)PULSES_PER_REV) * WHEEL_CIRCUMFERENCE_M;
       measuredSpeedKmh = (distanceMeters / elapsedSec) * 3.6;
 
-      // Ignore implausible spikes caused by leftover double-counts
       if (measuredSpeedKmh > MAX_PLAUSIBLE_SPEED_KMH) {
-        measuredSpeedKmh = currentSpeedKmh;
+        measuredSpeedKmh = MAX_PLAUSIBLE_SPEED_KMH;
       }
     }
 
-    // Light smoothing so readings don't jump around sharply
-    currentSpeedKmh = (0.4 * measuredSpeedKmh) + (0.6 * currentSpeedKmh);
-    if (currentSpeedKmh < 0.2) {
+    currentSpeedKmh = (SPEED_SMOOTHING * measuredSpeedKmh) + ((1.0f - SPEED_SMOOTHING) * currentSpeedKmh);
+    if (currentSpeedKmh < 0.25f || msSinceLastPulse > IDLE_TIMEOUT_MS) {
       currentSpeedKmh = 0.0;
     }
 
