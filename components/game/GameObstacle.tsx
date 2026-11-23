@@ -234,6 +234,7 @@ export default function GameObstacle({ obstacles }: GameObstacleProps) {
       className="pointer-events-none absolute inset-0"
       orthographic
       camera={{ position: [0, 0, 100] }}
+      dpr={1}
       style={{ width: "100%", height: "100%", background: "transparent" }}
       gl={{ alpha: true }}
     >

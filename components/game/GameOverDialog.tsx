@@ -1,4 +1,5 @@
 
+import { memo } from "react";
 import Link from "next/link";
 
 import { CHALLENGE_DURATION } from "@/constants/game";
@@ -42,7 +43,7 @@ function GameStats({
   );
 }
 
-export default function GameOverDialog({
+function GameOverDialog({
   phase,
   timeRemaining,
   distance,
@@ -131,3 +132,5 @@ export default function GameOverDialog({
     </div>
   );
 }
+
+export default memo(GameOverDialog);

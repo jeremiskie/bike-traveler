@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { CHALLENGE_DURATION } from "@/constants/game";
 
 interface GameHeaderProps {
@@ -17,12 +19,12 @@ function formatTime(seconds: number) {
   ).padStart(2, "0")}`;
 }
 
-export default function GameHeader({
+function GameHeader({
   title = "Bike Traveler",
   playerCode,
   timeRemaining = CHALLENGE_DURATION,
   distance = 0,
-  speed = 15,
+  speed = 0,
 }: GameHeaderProps) {
   return (
     <header className="mb-4 flex flex-wrap items-center justify-between gap-4 text-white">
@@ -61,10 +63,12 @@ export default function GameHeader({
         <div className="text-right">
           <p className="text-xs text-neutral-400">SPEED</p>
           <p className="font-bold tabular-nums">
-            {speed} km/h
+            {speed.toFixed(2)} km/h
           </p>
         </div>
       </div>
     </header>
   );
 }
+
+export default memo(GameHeader);

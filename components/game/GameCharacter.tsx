@@ -46,7 +46,7 @@ function BikerModel() {
 1
 useGLTF.preload('/models/character.glb')
 
-export default function GameCharacter({
+function GameCharacter({
   width,
   height,
   config,
@@ -80,6 +80,7 @@ export default function GameCharacter({
       {/* 3D Viewport replacing your red block rect */}
       <Canvas 
         camera={{ position: [0, 1.5, 3], fov: 50 }}
+        dpr={1}
         style={{ width: '100%', height: '100%', background: 'transparent' }}
         gl={{ alpha: true }}
       >
@@ -90,3 +91,5 @@ export default function GameCharacter({
     </div>
   );
 }
+
+export default React.memo(GameCharacter);

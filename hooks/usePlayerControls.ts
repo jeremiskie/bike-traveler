@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -9,45 +8,63 @@ interface UsePlayerControlsProps {
   enabled: boolean;
 }
 
+interface ESP32Telemetry {
+  left: boolean;
+  right: boolean;
+  speed_kmh: number;
+  pulses: number;
+}
+
+const ESP32_IP = process.env.NEXT_PUBLIC_ESP32_IP ?? "10.75.214.69";
+
+function isESP32Telemetry(value: unknown): value is ESP32Telemetry {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+
+  return (
+    "left" in value &&
+    typeof value.left === "boolean" &&
+    "right" in value &&
+    typeof value.right === "boolean" &&
+    "speed_kmh" in value &&
+    typeof value.speed_kmh === "number" &&
+    Number.isFinite(value.speed_kmh) &&
+    value.speed_kmh >= 0 &&
+    "pulses" in value &&
+    typeof value.pulses === "number" &&
+    Number.isFinite(value.pulses) &&
+    value.pulses >= 0
+  );
+}
+
+function isIPv4Address(value: string) {
+  const octets = value.split(".");
+  return (
+    octets.length === 4 &&
+    octets.every(
+      (octet) => /^\d{1,3}$/.test(octet) && Number(octet) <= 255
+    )
+  );
+}
+
 export function usePlayerControls({
   onMoveLeft,
   onMoveRight,
   enabled,
 }: UsePlayerControlsProps) {
-
-  // =====================================
-  // ESP32 CONNECTION SETTINGS
-  // =====================================
-
-  const [esp32IP, setEsp32IP] = useState("172.26.180.69");
   const [connected, setConnected] = useState(false);
-  const [connectionMessage, setConnectionMessage] =
-    useState("Waiting for ESP32...");
-
-  const [leftPressed, setLeftPressed] = useState(false);
-  const [rightPressed, setRightPressed] = useState(false);
-
-  const previousButtons = useRef({
-    left: false,
-    right: false,
-  });
-
-  // =====================================
-  // KEYBOARD + ESP32 CONTROLS
-  // =====================================
+  const [sensorSpeedKmh, setSensorSpeedKmh] = useState(0);
+  const previousButtons = useRef({ left: false, right: false });
+  const lastConnectionState = useRef<
+    "unknown" | "connected" | "disconnected"
+  >("unknown");
 
   useEffect(() => {
     if (!enabled) return;
 
-    let active = true;
-    let timer: ReturnType<typeof setTimeout>;
-
-    // KEYBOARD CONTROLS
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === "ArrowLeft" ||
-        event.key === "ArrowRight"
-      ) {
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();
       }
 
@@ -55,61 +72,57 @@ export function usePlayerControls({
 
       if (event.key === "ArrowLeft") {
         onMoveLeft();
-      }
-
-      if (event.key === "ArrowRight") {
+      } else if (event.key === "ArrowRight") {
         onMoveRight();
       }
     };
 
-    // ESP32 WIFI CONTROLS
-    const checkESP32 = async () => {
-      try {
-        const response = await fetch(
-          `http://${esp32IP.trim()}/buttons`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [enabled, onMoveLeft, onMoveRight]);
+
+  useEffect(() => {
+    if (!isIPv4Address(ESP32_IP)) {
+      if (lastConnectionState.current !== "disconnected") {
+        console.error(
+          "ESP32 connection failed: configure NEXT_PUBLIC_ESP32_IP with the board's IPv4 address."
         );
+        lastConnectionState.current = "disconnected";
+      }
+      return;
+    }
+
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const pollESP32 = async () => {
+      try {
+        const response = await fetch(`http://${ESP32_IP}/buttons`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(1500),
+        });
 
         if (!response.ok) {
-          throw new Error("ESP32 request failed");
+          throw new Error(`ESP32 returned HTTP ${response.status}.`);
         }
 
-        const data = await response.json();
-
-        if (
-          typeof data.left !== "boolean" ||
-          typeof data.right !== "boolean"
-        ) {
-          throw new Error("Invalid ESP32 response");
+        const data: unknown = await response.json();
+        if (!isESP32Telemetry(data)) {
+          throw new Error("ESP32 returned an invalid telemetry response.");
         }
 
         if (!active) return;
 
         setConnected(true);
-        setConnectionMessage("ESP32 Connected!");
+        setSensorSpeedKmh(data.speed_kmh);
 
-        setLeftPressed(data.left);
-        setRightPressed(data.right);
-
-        // LEFT BUTTON
-        if (
-          data.left &&
-          !previousButtons.current.left
-        ) {
-          console.log("ESP32 LEFT BUTTON PRESSED");
-          onMoveLeft();
+        if (data.left && !previousButtons.current.left) {
+          console.info("Left button pressed!");
+          if (enabled) onMoveLeft();
         }
-
-        // RIGHT BUTTON
-        if (
-          data.right &&
-          !previousButtons.current.right
-        ) {
-          console.log("ESP32 RIGHT BUTTON PRESSED");
-          onMoveRight();
+        if (data.right && !previousButtons.current.right) {
+          console.info("Right button pressed!");
+          if (enabled) onMoveRight();
         }
 
         previousButtons.current = {
@@ -117,56 +130,34 @@ export function usePlayerControls({
           right: data.right,
         };
 
+        if (lastConnectionState.current !== "connected") {
+          console.info("ESP32 connected.");
+          lastConnectionState.current = "connected";
+        }
       } catch (error) {
         if (!active) return;
 
         setConnected(false);
-        setConnectionMessage("ESP32 Disconnected");
+        setSensorSpeedKmh(0);
+        previousButtons.current = { left: false, right: false };
 
-        setLeftPressed(false);
-        setRightPressed(false);
-
-        previousButtons.current = {
-          left: false,
-          right: false,
-        };
-
+        if (lastConnectionState.current !== "disconnected") {
+          console.error("ESP32 connection failed.", error);
+          lastConnectionState.current = "disconnected";
+        }
       }
 
       if (active) {
-        timer = setTimeout(checkESP32, 50);
+        timer = setTimeout(pollESP32, 100);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-
-    if (esp32IP.trim()) {
-      checkESP32();
-    }
-
+    pollESP32();
     return () => {
       active = false;
-
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
-
-      clearTimeout(timer);
+      if (timer !== undefined) clearTimeout(timer);
     };
+  }, [enabled, onMoveLeft, onMoveRight]);
 
-  }, [enabled, onMoveLeft, onMoveRight, esp32IP]);
-
-  // =====================================
-  // RETURN ESP32 INFORMATION TO COMPONENT
-  // =====================================
-
-  return {
-    esp32IP,
-    setEsp32IP,
-    connected,
-    connectionMessage,
-    leftPressed,
-    rightPressed,
-  };
+  return { connected, sensorSpeedKmh };
 }

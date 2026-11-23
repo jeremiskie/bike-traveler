@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import GameRoad from "./GameRoad";
 import GameCharacter from "./GameCharacter";
@@ -107,6 +107,23 @@ export default function GameScene() {
     [saveResult]
   );
 
+  const moveLeft = useCallback(() => {
+    setLane("left");
+  }, []);
+
+  const moveRight = useCallback(() => {
+    setLane("right");
+  }, []);
+
+  const {
+    connected,
+    sensorSpeedKmh,
+  } = usePlayerControls({
+    onMoveLeft: moveLeft,
+    onMoveRight: moveRight,
+    enabled: phase === "playing",
+  });
+
   const {
     frame,
     timeRemaining,
@@ -117,6 +134,7 @@ export default function GameScene() {
   } = useGameLoop({
     isPlaying: phase === "playing",
     lane,
+    externalSpeedKmh: connected ? sensorSpeedKmh : null,
     onGameOver: handleGameOver,
     onChallengeComplete: handleChallengeComplete,
   });
@@ -148,21 +166,6 @@ export default function GameScene() {
 
     return () => window.clearTimeout(timeout);
   }, [restoreResult]);
-
-  // Player controls
-  const moveLeft = useCallback(() => {
-    setLane("left");
-  }, []);
-
-  const moveRight = useCallback(() => {
-    setLane("right");
-  }, []);
-
-  usePlayerControls({
-    onMoveLeft: moveLeft,
-    onMoveRight: moveRight,
-    enabled: phase === "playing",
-  });
 
   // Game Over transition
   useEffect(() => {
@@ -238,6 +241,15 @@ export default function GameScene() {
     }
   }, [challengeCompleted, distance, playerCode, speed, timeRemaining]);
 
+  const characterConfig = useMemo(
+    () => ({
+      lane,
+      sizeRatio: 0.065,
+      verticalPosition: 0.72,
+    }),
+    [lane]
+  );
+
   return (
     <div className="w-full">
       <GameHeader
@@ -245,7 +257,7 @@ export default function GameScene() {
         playerCode={playerCode}
         timeRemaining={timeRemaining}
         distance={distance}
-        speed={speed}
+        speed={sensorSpeedKmh}
       />
 
       <div className="relative h-[70vh] min-h-[400px] w-full overflow-hidden rounded-xl bg-neutral-900">
@@ -260,11 +272,7 @@ export default function GameScene() {
         <GameCharacter
           width={GAME_WIDTH}
           height={GAME_HEIGHT}
-          config={{
-            lane,
-            sizeRatio: 0.065,
-            verticalPosition: 0.72,
-          }}
+          config={characterConfig}
         />
 
         {phase === "setup" && <GameSetupDialog onStart={handleStart} />}
