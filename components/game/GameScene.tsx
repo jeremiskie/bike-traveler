@@ -64,6 +64,9 @@ export default function GameScene() {
   const [phase, setPhase] = useState<GamePhase>("setup");
   const [challengeCompleted, setChallengeCompleted] = useState(false);
   const [playerCode, setPlayerCode] = useState("");
+  const [finalAverageSpeed, setFinalAverageSpeed] = useState<number | null>(
+    null
+  );
   const [countdown, setCountdown] = useState<number | null>(null);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const autoStartRequested = useRef(false);
@@ -94,6 +97,7 @@ export default function GameScene() {
   const handleGameOver = useCallback(
     (result: GameResult) => {
       saveResult(result);
+      setFinalAverageSpeed(result.averageSpeed);
       setPhase("gameOver");
     },
     [saveResult]
@@ -102,6 +106,7 @@ export default function GameScene() {
   const handleChallengeComplete = useCallback(
     (result: GameResult) => {
       saveResult(result);
+      setFinalAverageSpeed(result.averageSpeed);
       setChallengeCompleted(true);
       setPhase("results");
     },
@@ -173,26 +178,23 @@ export default function GameScene() {
     return () => window.clearTimeout(timeout);
   }, [restoreResult]);
 
-  // Game Over transition
+  // Send the final speed to the comparison app.
   useEffect(() => {
-    if (phase !== "gameOver") return;
+    const gameEnded =
+      phase === "gameOver" || (phase === "results" && challengeCompleted);
+    if (!gameEnded) return;
+    if (finalAverageSpeed === null) return;
 
     const timeout = window.setTimeout(() => {
-      const humanSpeed =
-        connected && Number.isFinite(sensorSpeedKmh)
-          ? sensorSpeedKmh
-          : speed;
-      const comparisonSpeed = Math.max(0, humanSpeed);
-
       window.location.assign(
         `http://localhost:3001/speed-comparison?speed=${encodeURIComponent(
-          comparisonSpeed.toFixed(2)
+          finalAverageSpeed.toFixed(2)
         )}&playerCode=${encodeURIComponent(playerCode)}`
       );
     }, 5000);
 
     return () => window.clearTimeout(timeout);
-  }, [phase, connected, sensorSpeedKmh, speed, playerCode]);
+  }, [phase, challengeCompleted, finalAverageSpeed, playerCode]);
 
   useEffect(() => {
     if (phase !== "countdown" || countdown === null) return;
@@ -215,6 +217,7 @@ export default function GameScene() {
       setLane("right");
       setChallengeCompleted(false);
       setPlayerCode(code);
+      setFinalAverageSpeed(null);
       setLeaderboardError(null);
       setCountdown(3);
       setPhase("countdown");
@@ -258,6 +261,7 @@ export default function GameScene() {
     setLane("right");
     setChallengeCompleted(false);
     setPlayerCode("");
+    setFinalAverageSpeed(null);
     setLeaderboardError(null);
     setCountdown(null);
     setPhase("setup");
@@ -339,6 +343,11 @@ export default function GameScene() {
           timeRemaining={timeRemaining}
           distance={distance}
           speed={speed}
+          finalAverageSpeed={
+            phase === "gameOver" || challengeCompleted
+              ? finalAverageSpeed
+              : null
+          }
           completed={challengeCompleted}
           saveError={leaderboardError}
           onPlayAgain={handlePlayAgain}

@@ -45,4 +45,5 @@ export interface LeaderboardEntry {
 export interface GameResult {
   distance: number;
   highestSpeed: number;
+  averageSpeed: number;
 }

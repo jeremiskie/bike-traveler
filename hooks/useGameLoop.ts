@@ -75,6 +75,18 @@ export function useGameLoop({
   const displayedDistanceRef = useRef(0);
   const frameRenderAccumulatorRef = useRef(0);
 
+  const getGameResult = useCallback(
+    (): GameResult => ({
+      distance: Math.floor(distanceRef.current),
+      highestSpeed: highestSpeedRef.current,
+      averageSpeed:
+        elapsedRef.current > 0
+          ? (distanceRef.current * 3.6) / elapsedRef.current
+          : 0,
+    }),
+    []
+  );
+
   useEffect(() => {
     playingRef.current = isPlaying;
   }, [isPlaying]);
@@ -228,10 +240,7 @@ export function useGameLoop({
         obstacles: [impactObstacle],
       });
 
-      gameOverCallbackRef.current({
-        distance: Math.floor(distanceRef.current),
-        highestSpeed: highestSpeedRef.current,
-      });
+      gameOverCallbackRef.current(getGameResult());
       return;
     }
 
@@ -247,12 +256,9 @@ export function useGameLoop({
 
     if (elapsedRef.current >= CHALLENGE_DURATION) {
       stoppedRef.current = true;
-      challengeCompleteCallbackRef.current({
-        distance: Math.floor(distanceRef.current),
-        highestSpeed: highestSpeedRef.current,
-      });
+      challengeCompleteCallbackRef.current(getGameResult());
     }
-  }, []);
+  }, [getGameResult]);
 
   useGameAnimation({ onFrame: updateFrame });
 

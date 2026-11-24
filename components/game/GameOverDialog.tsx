@@ -9,6 +9,7 @@ interface GameOverDialogProps {
   timeRemaining: number;
   distance: number;
   speed: number;
+  finalAverageSpeed: number | null;
   completed: boolean;
   saveError: string | null;
   onPlayAgain: () => void;
@@ -37,7 +38,7 @@ function GameStats({
       </div>
       <div>
         <p className="text-xs text-neutral-400">SPEED</p>
-        <p className="font-bold tabular-nums">{speed} km/h</p>
+        <p className="font-bold tabular-nums">{speed.toFixed(2)} km/h</p>
       </div>
     </div>
   );
@@ -48,6 +49,7 @@ function GameOverDialog({
   timeRemaining,
   distance,
   speed,
+  finalAverageSpeed,
   completed,
   saveError,
   onPlayAgain,
@@ -73,7 +75,10 @@ function GameOverDialog({
           <p className="mt-4 text-neutral-300">
             Time survived: {formatTime(CHALLENGE_DURATION - timeRemaining)}
           </p>
-          <GameStats distance={distance} speed={speed} />
+          <GameStats
+            distance={distance}
+            speed={finalAverageSpeed ?? speed}
+          />
           {saveError && (
             <p role="alert" className="mt-4 text-sm text-red-300">
               {saveError}
@@ -98,7 +103,10 @@ function GameOverDialog({
               {saveError}
             </p>
           )}
-          <GameStats distance={distance} speed={speed} />
+          <GameStats
+            distance={distance}
+            speed={completed ? finalAverageSpeed ?? speed : speed}
+          />
 
           <button
             onClick={onPlayAgain}
