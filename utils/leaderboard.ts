@@ -7,7 +7,14 @@ function isLeaderboardEntry(value: unknown): value is LeaderboardEntry {
     return false;
   }
 
+  const hasValidAverageSpeed =
+    !("averageSpeed" in value) ||
+    (typeof value.averageSpeed === "number" &&
+      Number.isFinite(value.averageSpeed) &&
+      value.averageSpeed >= 0);
+
   return (
+    hasValidAverageSpeed &&
     "id" in value &&
     typeof value.id === "string" &&
     "playerCode" in value &&

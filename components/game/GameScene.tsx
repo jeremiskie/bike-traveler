@@ -18,11 +18,10 @@ import {
   CHALLENGE_DURATION,
   GAME_WIDTH,
   GAME_HEIGHT,
+  GAME_RESULT_STORAGE_KEY,
 } from "@/constants/game";
 
 import type { GamePhase, GameResult, Lane } from "@/types/game";
-
-const GAME_RESULT_STORAGE_KEY = "bike-traveler-resume-result-v1";
 
 interface SavedGameResult {
   playerCode: string;
@@ -72,7 +71,7 @@ export default function GameScene() {
   const autoStartRequested = useRef(false);
 
   const saveResult = useCallback(
-    ({ distance, highestSpeed }: GameResult) => {
+    ({ averageSpeed, distance, highestSpeed }: GameResult) => {
       if (!playerCode) return;
 
       try {
@@ -81,6 +80,7 @@ export default function GameScene() {
           playerCode,
           distance,
           highestSpeed,
+          averageSpeed,
           playedAt: new Date().toISOString(),
         });
         setLeaderboardError(null);

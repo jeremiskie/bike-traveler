@@ -1,6 +1,7 @@
 
 export const GAME_WIDTH = 1200;
 export const GAME_HEIGHT = 800;
+export const GAME_RESULT_STORAGE_KEY = "bike-traveler-resume-result-v1";
 
 export const HORIZON = 200;
 export const PLAYER_Y = 576;

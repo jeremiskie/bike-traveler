@@ -39,6 +39,7 @@ export interface LeaderboardEntry {
   playerCode: string;
   distance: number;
   highestSpeed: number;
+  averageSpeed?: number;
   playedAt: string;
 }
 
